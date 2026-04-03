@@ -7,30 +7,31 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',system-ui,sans-serif;background:linear-gradient(135deg,#060c18 0%,#0a1628 50%,#060c18 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
-.wrap{width:380px;max-width:94vw}
-.brand{text-align:center;margin-bottom:28px}
-.brand-name{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:#e8f0fe;letter-spacing:-.5px}
-.brand-name span{color:#00c8e8}
-.brand-sub{font-size:12px;color:rgba(255,255,255,0.35);margin-top:6px}
-.card{background:#0d1524;border:1px solid rgba(0,200,230,0.15);border-radius:16px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
-.card-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:#e8f0fe;margin-bottom:4px}
-.card-sub{font-size:12px;color:#4d6480;margin-bottom:24px}
-.field{margin-bottom:16px}
-label{display:block;font-size:10px;font-weight:600;color:#4d6480;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-input{width:100%;padding:11px 14px;background:#080c14;border:1px solid rgba(0,200,230,0.15);border-radius:9px;font-family:inherit;font-size:14px;color:#e8f0fe;outline:none;transition:border-color .2s,box-shadow .2s}
-input:focus{border-color:rgba(0,200,230,0.5);box-shadow:0 0 0 3px rgba(0,200,232,0.1)}
-.error{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
-.error.show{display:block}
-.btn{width:100%;padding:13px;background:linear-gradient(135deg,#00c8e8,#0088aa);border:none;border-radius:10px;color:#080c14;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,200,232,0.28);transition:opacity .15s}
-.btn:hover{opacity:.88}.btn:disabled{opacity:.5;cursor:not-allowed}
+body{font-family:'DM Sans',sans-serif;background:#f5f6f8;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.wrap{width:380px;max-width:94vw;}
+.brand{text-align:center;margin-bottom:28px;}
+.brand-name{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#1a1d23;letter-spacing:-.5px;}
+.brand-name span{color:#1d6ef5;}
+.brand-sub{font-size:12px;color:#9ca3af;margin-top:5px;}
+.card{background:#fff;border:1px solid #e2e5ea;border-radius:16px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.07);}
+.card-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:#1a1d23;margin-bottom:4px;}
+.card-sub{font-size:12px;color:#9ca3af;margin-bottom:24px;}
+.field{margin-bottom:16px;}
+label{display:block;font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+input{width:100%;padding:11px 14px;background:#f9fafb;border:1px solid #e2e5ea;border-radius:9px;font-family:inherit;font-size:14px;color:#1a1d23;outline:none;transition:border-color .2s,box-shadow .2s;}
+input:focus{border-color:#1d6ef5;box-shadow:0 0 0 3px rgba(29,110,245,.1);background:#fff;}
+.error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;}
+.error.show{display:block;}
+.btn{width:100%;padding:13px;background:#1d6ef5;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;}
+.btn:hover{background:#1558d4;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="brand">
     <div class="brand-name">archiva<span>.</span>sizing</div>
-    <div class="brand-sub">Delivery & Customer Service · 2026</div>
+    <div class="brand-sub">Project Sizing Tool · Delivery &amp; CS</div>
   </div>
   <div class="card">
     <div class="card-title">Accedi</div>
@@ -44,30 +45,26 @@ input:focus{border-color:rgba(0,200,230,0.5);box-shadow:0 0 0 3px rgba(0,200,232
 <script>
 const TOKEN_KEY = "sizing_token";
 const USER_KEY  = "sizing_user";
-
-// Se già autenticati redirect diretto
 const t = sessionStorage.getItem(TOKEN_KEY);
 if(t) fetch("/api/auth/me",{headers:{Authorization:"Bearer "+t}}).then(r=>{if(r.ok)window.location.href="/"}).catch(()=>{});
-
 document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
-
 async function doLogin(){
-  const btn=document.getElementById("loginBtn"), err=document.getElementById("err");
+  const btn=document.getElementById("loginBtn"),err=document.getElementById("err");
   const username=document.getElementById("username").value.trim();
   const password=document.getElementById("password").value;
   err.classList.remove("show");
   if(!username||!password){err.textContent="Compila tutti i campi";err.classList.add("show");return;}
-  btn.disabled=true; btn.textContent="Accesso in corso...";
+  btn.disabled=true;btn.textContent="Accesso in corso...";
   try{
     const r=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
     const data=await r.json();
     if(!r.ok)throw new Error(data.detail||"Credenziali non valide");
-    sessionStorage.setItem(TOKEN_KEY, data.token);
-    sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    sessionStorage.setItem(TOKEN_KEY,data.token);
+    sessionStorage.setItem(USER_KEY,JSON.stringify(data.user));
     window.location.href="/";
   }catch(e){
-    err.textContent=e.message; err.classList.add("show");
-    btn.disabled=false; btn.textContent="Accedi";
+    err.textContent=e.message;err.classList.add("show");
+    btn.disabled=false;btn.textContent="Accedi";
   }
 }
 </script>
