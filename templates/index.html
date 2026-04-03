@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archiva Project Sizing</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080c14;--surface:#0d1524;--surface2:#111927;--border:rgba(0,200,230,0.12);
+  --cyan:#00c8e8;--text:#e8f0fe;--muted:#4d6480;--muted2:#2a3a50;
+  --success:#2dd4a7;--danger:#ef4444;--warn:#f59e0b;
+  --xs:#71717a;--s:#3b82f6;--m:#f59e0b;--l:#22c55e;--xl:#a855f7;--xxl:#ef4444;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+/* HEADER */
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.brand{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);}
+.brand span{color:var(--cyan);}
+.header-right{display:flex;align-items:center;gap:10px;}
+.user-info{font-size:12px;color:var(--muted);text-align:right;}
+.user-info strong{display:block;color:var(--text);font-size:13px;}
+.header-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;transition:.15s;}
+.header-btn:hover{border-color:rgba(0,200,232,.3);color:var(--text);}
+.header-btn.admin{color:var(--cyan);border-color:rgba(0,200,232,.25);}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);padding:0 28px;flex-shrink:0;}
+.tab{padding:12px 20px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;user-select:none;}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab:hover:not(.active){color:var(--text);}
+
+/* MAIN LAYOUT */
+.main{flex:1;display:flex;overflow:hidden;}
+.view{display:none;flex:1;overflow:hidden;}
+.view.active{display:flex;}
+
+/* ── QUESTIONNAIRE VIEW ── */
+.q-layout{display:grid;grid-template-columns:1fr 320px;gap:0;flex:1;overflow:hidden;}
+.q-left{overflow-y:auto;padding:28px;display:flex;flex-direction:column;gap:14px;}
+.q-right{border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+
+/* project info */
+.project-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.project-card h3{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:14px;text-transform:uppercase;letter-spacing:.8px;}
+.fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;}
+.field input,.field textarea{background:#080c14;border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;resize:none;}
+.field input:focus,.field textarea:focus{border-color:rgba(0,200,232,.4);}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted2);}
+
+/* section label */
+.sec-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:4px 0;}
+
+/* question card */
+.q-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;transition:border-color .15s;}
+.q-card.answered{border-color:var(--muted2);}
+.q-header{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;}
+.q-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:var(--bg);border-radius:5px;padding:2px 6px;margin-top:2px;flex-shrink:0;}
+.q-label{font-size:13px;font-weight:600;line-height:1.4;}
+.q-sub{font-size:11px;color:var(--muted);margin-top:2px;font-weight:400;}
+.options{display:flex;flex-wrap:wrap;gap:7px;}
+.opt{position:relative;}
+.opt input{position:absolute;opacity:0;width:0;height:0;}
+.opt label{display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);transition:all .12s;user-select:none;}
+.opt label:hover{border-color:rgba(0,200,232,.3);color:var(--text);}
+.opt input:checked+label{border-color:var(--cyan);background:rgba(0,200,232,.1);color:var(--cyan);}
+.pts{font-family:'DM Mono',monospace;font-size:9px;opacity:.5;}
+.opt input:checked+label .pts{opacity:.7;}
+.options.yn .opt label{min-width:60px;justify-content:center;}
+
+/* RIGHT PANEL */
+.score-section{padding:20px;border-bottom:1px solid var(--border);}
+.score-meta{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.score-row{display:flex;align-items:flex-end;justify-content:space-between;}
+.score-num{font-family:'DM Mono',monospace;font-size:44px;font-weight:500;line-height:1;color:var(--text);}
+.score-of{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.t-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:14px;font-weight:700;}
+.t-badge .range{font-size:10px;font-weight:400;opacity:.75;}
+.t-xs{background:rgba(113,113,122,.15);color:#a1a1aa;}
+.t-s{background:rgba(59,130,246,.15);color:#60a5fa;}
+.t-m{background:rgba(245,158,11,.15);color:#fbbf24;}
+.t-l{background:rgba(34,197,94,.15);color:#4ade80;}
+.t-xl{background:rgba(168,85,247,.15);color:#c084fc;}
+.t-xxl{background:rgba(239,68,68,.15);color:#f87171;}
+
+.progress-section{padding:14px 20px;border-bottom:1px solid var(--border);}
+.prog-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:7px;font-family:'DM Mono',monospace;}
+.prog-bar{height:5px;background:var(--bg);border-radius:999px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--cyan);border-radius:999px;transition:width .3s;}
+
+.gov-section{padding:16px 20px;flex:1;}
+.gov-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.gov-empty{font-size:12px;color:var(--muted);font-style:italic;}
+.gov-item{display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.4;color:var(--text);padding:3px 0;}
+.gov-item .dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);flex-shrink:0;margin-top:4px;}
+.gov-item.cond .dot{background:#a855f7;}
+.gov-item.cond{color:var(--muted);}
+.gov-item .cn{font-size:9px;color:#a855f7;font-family:'DM Mono',monospace;margin-left:auto;white-space:nowrap;flex-shrink:0;}
+.tag-d{font-family:'DM Mono',monospace;font-size:8px;font-weight:700;background:rgba(59,130,246,.2);color:#60a5fa;padding:1px 4px;border-radius:3px;flex-shrink:0;}
+.tag-a{font-family:'DM Mono',monospace;font-size:8px;font-weight:700;background:rgba(236,72,153,.2);color:#f472b6;padding:1px 4px;border-radius:3px;flex-shrink:0;}
+.new-tag{font-size:8px;background:#16a34a;color:#fff;padding:1px 4px;border-radius:3px;font-family:'DM Mono',monospace;font-weight:700;}
+
+.save-section{padding:16px 20px;border-top:1px solid var(--border);}
+.save-btn{width:100%;padding:12px;background:linear-gradient(135deg,#00c8e8,#0088aa);border:none;border-radius:9px;color:#080c14;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.save-btn:hover{opacity:.88;}
+.save-btn:disabled{opacity:.4;cursor:not-allowed;}
+.save-msg{font-size:12px;text-align:center;margin-top:8px;min-height:16px;}
+.save-msg.ok{color:var(--success);}
+.save-msg.err{color:var(--danger);}
+
+/* ── HISTORY VIEW ── */
+.h-layout{flex:1;display:flex;overflow:hidden;}
+.h-sidebar{width:320px;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.h-search{padding:14px;border-bottom:1px solid var(--border);}
+.h-search input{width:100%;background:#080c14;border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;}
+.h-search input:focus{border-color:rgba(0,200,232,.4);}
+.h-filters{display:flex;gap:6px;padding:0 14px 12px;flex-wrap:wrap;}
+.h-chip{padding:4px 10px;border-radius:999px;border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;transition:.12s;color:var(--muted);}
+.h-chip:hover{border-color:rgba(0,200,232,.3);color:var(--text);}
+.h-chip.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,200,232,.08);}
+.h-list{flex:1;overflow-y:auto;}
+.h-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:.12s;}
+.h-item:hover{background:var(--surface2);}
+.h-item.selected{background:rgba(0,200,232,.07);border-left:2px solid var(--cyan);}
+.h-item-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.h-item-title{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.h-item-meta{font-size:11px;color:var(--muted);}
+.h-item-sub{font-size:11px;color:var(--muted);}
+.h-empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;font-style:italic;}
+
+.h-detail{flex:1;overflow-y:auto;padding:28px;}
+.h-detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;font-style:italic;}
+.detail-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;}
+.detail-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1.2;}
+.detail-meta{font-size:12px;color:var(--muted);margin-top:4px;}
+.detail-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+.meta-badge{font-family:'DM Mono',monospace;font-size:11px;padding:3px 9px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.del-btn-detail{background:none;border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:7px 14px;color:#f87171;font-family:inherit;font-size:12px;cursor:pointer;transition:.15s;flex-shrink:0;}
+.del-btn-detail:hover{background:rgba(239,68,68,.08);}
+
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.detail-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.detail-box h4{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+.detail-kv{display:flex;flex-direction:column;gap:8px;}
+.kv-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px solid var(--border);padding-bottom:6px;}
+.kv-row:last-child{border-bottom:none;padding-bottom:0;}
+.kv-k{color:var(--muted);}
+.kv-v{font-weight:500;text-align:right;}
+
+.detail-answers{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;}
+.detail-answers h4{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:14px;}
+.ans-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;gap:12px;}
+.ans-row:last-child{border-bottom:none;}
+.ans-q{color:var(--muted);flex:1;}
+.ans-v{font-family:'DM Mono',monospace;font-size:11px;color:var(--cyan);}
+.ans-pts{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+
+.detail-gov{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.detail-gov h4{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="brand">archiva<span>.</span>sizing</div>
+  <div class="header-right">
+    <div class="user-info">
+      <strong id="userName">—</strong>
+      <span id="userRole"></span>
+    </div>
+    <button class="header-btn admin" id="adminBtn" style="display:none" onclick="window.location.href='/admin'">Admin</button>
+    <button class="header-btn" onclick="doLogout()">Esci</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" id="tabQ" onclick="showView('questionnaire')">➕ Nuovo sizing</div>
+  <div class="tab" id="tabH" onclick="showView('history')">📋 Storico</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ── QUESTIONNAIRE VIEW ── -->
+  <div class="view active" id="viewQ">
+    <div class="q-layout">
+      <div class="q-left">
+
+        <!-- Project info -->
+        <div class="project-card">
+          <h3>Dati progetto</h3>
+          <div class="fields-grid">
+            <div class="field"><label>N° CRM</label><input type="text" id="crmNumber" placeholder="es. CRM-2025-0412"></div>
+            <div class="field"><label>ODL</label><input type="text" id="odl" placeholder="es. ODL-2025-0089"></div>
+            <div class="field full"><label>Cliente *</label><input type="text" id="cliente" placeholder="Ragione sociale cliente"></div>
+            <div class="field full"><label>Titolo progetto *</label><input type="text" id="titolo" placeholder="Descrizione sintetica del progetto"></div>
+            <div class="field full"><label>Note</label><textarea id="note" rows="2" placeholder="Eventuali note aggiuntive..."></textarea></div>
+          </div>
+        </div>
+
+        <div class="sec-label">Impegno</div>
+
+        <div class="q-card" id="card-q1">
+          <div class="q-header"><div class="q-num">01</div><div><div class="q-label">Giornate di sviluppo stimate</div><div class="q-sub">Effort tecnico complessivo del team interno</div></div></div>
+          <div class="options">
+            <div class="opt"><input type="radio" name="q1" value="0" id="q1a"><label for="q1a">Meno di 2 gg <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q1" value="1" id="q1b"><label for="q1b">2–10 gg <span class="pts">1 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q1" value="3" id="q1c"><label for="q1c">10–50 gg <span class="pts">3 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q1" value="4" id="q1d"><label for="q1d">Più di 50 gg <span class="pts">4 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="q-card" id="card-q2">
+          <div class="q-header"><div class="q-num">02</div><div><div class="q-label">Durata prevista del progetto</div><div class="q-sub">Dal kick-off al go-live o alla chiusura</div></div></div>
+          <div class="options">
+            <div class="opt"><input type="radio" name="q2" value="0" id="q2a"><label for="q2a">Meno di 1 mese <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q2" value="1" id="q2b"><label for="q2b">1–3 mesi <span class="pts">1 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q2" value="3" id="q2c"><label for="q2c">3–6 mesi <span class="pts">3 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q2" value="4" id="q2d"><label for="q2d">Più di 6 mesi <span class="pts">4 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="sec-label">Team e stakeholder</div>
+
+        <div class="q-card" id="card-q3">
+          <div class="q-header"><div class="q-num">03</div><div><div class="q-label">Team interni coinvolti</div><div class="q-sub">Aree/dipartimenti Archiva che lavorano sul progetto</div></div></div>
+          <div class="options">
+            <div class="opt"><input type="radio" name="q3" value="0" id="q3a"><label for="q3a">1 team <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q3" value="1" id="q3b"><label for="q3b">2 team <span class="pts">1 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q3" value="2" id="q3c"><label for="q3c">3 o più <span class="pts">2 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="q-card" id="card-q4">
+          <div class="q-header"><div class="q-num">04</div><div><div class="q-label">Vendor interni</div><div class="q-sub">Fornitori / partner interni al gruppo</div></div></div>
+          <div class="options">
+            <div class="opt"><input type="radio" name="q4" value="0" id="q4a"><label for="q4a">Nessuno <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q4" value="1" id="q4b"><label for="q4b">1 vendor <span class="pts">1 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q4" value="2" id="q4c"><label for="q4c">2 o più <span class="pts">2 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="q-card" id="card-q5">
+          <div class="q-header"><div class="q-num">05</div><div><div class="q-label">Vendor esterni</div><div class="q-sub">Fornitori terzi con dipendenze contrattuali</div></div></div>
+          <div class="options">
+            <div class="opt"><input type="radio" name="q5" value="0" id="q5a"><label for="q5a">Nessuno <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q5" value="1.5" id="q5b"><label for="q5b">1 vendor <span class="pts">1.5 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q5" value="2.5" id="q5c"><label for="q5c">2 o più <span class="pts">2.5 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="q-card" id="card-q6">
+          <div class="q-header"><div class="q-num">06</div><div><div class="q-label">Referenti funzionali lato cliente</div><div class="q-sub">Persone con cui il PM interagisce direttamente</div></div></div>
+          <div class="options">
+            <div class="opt"><input type="radio" name="q6" value="0" id="q6a"><label for="q6a">1–2 persone <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q6" value="1" id="q6b"><label for="q6b">3–5 persone <span class="pts">1 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q6" value="2" id="q6c"><label for="q6c">6 o più <span class="pts">2 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="q-card" id="card-q7">
+          <div class="q-header"><div class="q-num">07</div><div><div class="q-label">Utenti finali impattati</div><div class="q-sub">Persone che cambieranno processo o strumento</div></div></div>
+          <div class="options">
+            <div class="opt"><input type="radio" name="q7" value="0" id="q7a"><label for="q7a">Nessuno <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q7" value="1" id="q7b"><label for="q7b">1–5 utenti <span class="pts">1 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q7" value="2" id="q7c"><label for="q7c">Più di 5 <span class="pts">2 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="sec-label">Caratteristiche tecniche e cliente</div>
+
+        <div class="q-card" id="card-q8">
+          <div class="q-header"><div class="q-num">08</div><div><div class="q-label">SAP coinvolto?</div><div class="q-sub">Personalizzazioni, release management, system integrator</div></div></div>
+          <div class="options yn">
+            <div class="opt"><input type="radio" name="q8" value="0" id="q8a"><label for="q8a">No <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q8" value="2" id="q8b"><label for="q8b">Sì <span class="pts">2 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="q-card" id="card-q9">
+          <div class="q-header"><div class="q-num">09</div><div><div class="q-label">Vincoli di compliance o regolatori?</div><div class="q-sub">GDPR, normative di settore, audit trail obbligatorio</div></div></div>
+          <div class="options yn">
+            <div class="opt"><input type="radio" name="q9" value="0" id="q9a"><label for="q9a">No <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q9" value="2" id="q9b"><label for="q9b">Sì <span class="pts">2 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="q-card" id="card-q10">
+          <div class="q-header"><div class="q-num">10</div><div><div class="q-label">È previsto un go-live tecnico?</div><div class="q-sub">Messa in produzione con cutover su sistemi o processi</div></div></div>
+          <div class="options yn">
+            <div class="opt"><input type="radio" name="q10" value="0" id="q10a"><label for="q10a">No <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q10" value="1" id="q10b"><label for="q10b">Sì <span class="pts">1 pt</span></label></div>
+          </div>
+        </div>
+
+        <div class="q-card" id="card-q11">
+          <div class="q-header"><div class="q-num">11</div><div><div class="q-label">Cliente top 20?</div><div class="q-sub">Il cliente rientra nei 20 account strategici di Archiva</div></div></div>
+          <div class="options yn">
+            <div class="opt"><input type="radio" name="q11" value="0" id="q11a"><label for="q11a">No <span class="pts">0 pt</span></label></div>
+            <div class="opt"><input type="radio" name="q11" value="1" id="q11b"><label for="q11b">Sì <span class="pts">1 pt</span></label></div>
+          </div>
+        </div>
+        <div style="height:16px"></div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="q-right">
+        <div class="score-section">
+          <div class="score-meta">Punteggio totale</div>
+          <div class="score-row">
+            <div>
+              <div class="score-num" id="scoreNum">—</div>
+              <div class="score-of">su 24.5 pt</div>
+            </div>
+            <div id="tagBadge" style="display:none"></div>
+          </div>
+        </div>
+        <div class="progress-section">
+          <div class="prog-meta">
+            <span id="progLabel">0 / 11 domande</span>
+            <span id="progPct">0%</span>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+        </div>
+        <div class="gov-section">
+          <div class="gov-title">Governance attivata</div>
+          <div id="govList"><div class="gov-empty">Completa il questionario per vedere gli elementi.</div></div>
+        </div>
+        <div class="save-section">
+          <button class="save-btn" id="saveBtn" onclick="saveSizing()" disabled>Salva sizing</button>
+          <div class="save-msg" id="saveMsg"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY VIEW ── -->
+  <div class="view" id="viewH">
+    <div class="h-layout">
+      <div class="h-sidebar">
+        <div class="h-search">
+          <input type="text" id="searchInput" placeholder="Cerca cliente, progetto, CRM, ODL…" oninput="filterHistory()">
+        </div>
+        <div class="h-filters" id="tagliaFilters">
+          <div class="h-chip active" data-taglia="" onclick="setTagliaFilter(this,'')">Tutti</div>
+          <div class="h-chip" data-taglia="xs" onclick="setTagliaFilter(this,'xs')">XS</div>
+          <div class="h-chip" data-taglia="s" onclick="setTagliaFilter(this,'s')">S</div>
+          <div class="h-chip" data-taglia="m" onclick="setTagliaFilter(this,'m')">M</div>
+          <div class="h-chip" data-taglia="l" onclick="setTagliaFilter(this,'l')">L</div>
+          <div class="h-chip" data-taglia="xl" onclick="setTagliaFilter(this,'xl')">XL</div>
+          <div class="h-chip" data-taglia="xxl" onclick="setTagliaFilter(this,'xxl')">XXL</div>
+        </div>
+        <div class="h-list" id="historyList"><div class="h-empty">Caricamento…</div></div>
+      </div>
+      <div class="h-detail" id="historyDetail">
+        <div class="h-detail-empty">Seleziona un sizing dallo storico</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const TOKEN_KEY = 'sizing_token';
+const USER_KEY  = 'sizing_user';
+const QDEFS = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11'];
+
+const TAGLIE = [
+  {id:'xs',label:'XS',range:'< 2k€',min:0,max:2},
+  {id:'s',label:'S',range:'2–3k€',min:3,max:5},
+  {id:'m',label:'M',range:'5–8k€',min:6,max:9},
+  {id:'l',label:'L',range:'9–15k€',min:10,max:14},
+  {id:'xl',label:'XL',range:'16–30k€',min:15,max:19},
+  {id:'xxl',label:'XXL',range:'30k€+',min:20,max:24.5},
+];
+
+const Q_LABELS = {
+  q1:{label:'Giornate di sviluppo',opts:{0:'< 2 gg',1:'2–10 gg',3:'10–50 gg',4:'> 50 gg'}},
+  q2:{label:'Durata',opts:{0:'< 1 mese',1:'1–3 mesi',3:'3–6 mesi',4:'> 6 mesi'}},
+  q3:{label:'Team interni',opts:{0:'1 team',1:'2 team',2:'3+ team'}},
+  q4:{label:'Vendor interni',opts:{0:'Nessuno',1:'1 vendor',2:'2+ vendor'}},
+  q5:{label:'Vendor esterni',opts:{0:'Nessuno',1.5:'1 vendor',2.5:'2+ vendor'}},
+  q6:{label:'Referenti cliente',opts:{0:'1–2',1:'3–5',2:'6+'}},
+  q7:{label:'Utenti finali',opts:{0:'Nessuno',1:'1–5',2:'> 5'}},
+  q8:{label:'SAP coinvolto',opts:{0:'No',2:'Sì'}},
+  q9:{label:'Compliance',opts:{0:'No',2:'Sì'}},
+  q10:{label:'Go-live tecnico',opts:{0:'No',1:'Sì'}},
+  q11:{label:'Cliente top 20',opts:{0:'No',1:'Sì'}},
+};
+
+const GOV_ITEMS = [
+  {name:'Verbali e action item log',type:'D',from:'xs'},
+  {name:'Piano di progetto (baseline)',type:'D',from:'s'},
+  {name:'Kick-off',type:'A',from:'s'},
+  {name:'Milestone plan',type:'D',from:'m'},
+  {name:'RACI',type:'D',from:'m'},
+  {name:'Risk Register',type:'D',from:'m'},
+  {name:'Issue Log',type:'D',from:'m'},
+  {name:'Meeting operativi strutturati',type:'A',from:'m'},
+  {name:'Organigramma di progetto',type:'D',from:'m',cond:(a,t)=>ti(t)>=ti('l')||(ti(t)===ti('m')&&(pf(a.q4)>0||pf(a.q5)>0)),cn:'se vendor > 0'},
+  {name:'Stakeholder Register',type:'D',from:'l'},
+  {name:'Piano di comunicazione',type:'D',from:'l'},
+  {name:'Change management process',type:'A',from:'l'},
+  {name:'Escalation process',type:'A',from:'l'},
+  {name:'Gate review / Phase gate',type:'A',from:'l'},
+  {name:'Steering Committee',type:'A',from:'l',cond:(a,t)=>ti(t)>=ti('xl')||(ti(t)===ti('l')&&pf(a.q11)>0),cn:'se top 20'},
+  {name:'Alignment Report (Confluence)',type:'D',from:'l',isNew:true},
+  {name:'Governance Effort Report',type:'D',from:'l',isNew:true},
+  {name:'Vendor management plan',type:'D',from:'xl'},
+  {name:'Cutover Plan',type:'D',from:'xl',cond:(a,t)=>ti(t)>=ti('xl')||(ti(t)===ti('l')&&pf(a.q10)>0),cn:'se go-live = sì',isNew:true},
+  {name:'Rollback Plan',type:'D',from:'xl',cond:(a,t)=>ti(t)>=ti('xl')||(ti(t)===ti('l')&&pf(a.q10)>0),cn:'se go-live = sì',isNew:true},
+  {name:'Hypercare',type:'A',from:'xl',cond:(a,t)=>ti(t)>=ti('xl')||(['m','l'].includes(t)&&pf(a.q10)>0&&pf(a.q7)>=2),cn:'se go-live + utenti > 5'},
+  {name:'Handover document',type:'D',from:'xl'},
+  {name:'Handover a operations',type:'A',from:'xl'},
+];
+
+function ti(id){return TAGLIE.findIndex(t=>t.id===id);}
+function pf(v){return parseFloat(v||0);}
+function getToken(){return sessionStorage.getItem(TOKEN_KEY);}
+function authH(){return{'Content-Type':'application/json','Authorization':'Bearer '+(getToken()||'')};}
+function getTaglia(score){return TAGLIE.find(t=>score>=t.min&&score<=t.max)||TAGLIE[0];}
+
+function getAnswers(){
+  const a={};
+  QDEFS.forEach(q=>{const el=document.querySelector('input[name="'+q+'"]:checked');if(el)a[q]=el.value;});
+  return a;
+}
+
+// ── INIT ──────────────────────────────────────────────────
+let currentUser = null;
+(async()=>{
+  const token=getToken();
+  if(!token){window.location.href='/login';return;}
+  const r=await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+  if(!r.ok){sessionStorage.clear();window.location.href='/login';return;}
+  const {user}=await r.json();
+  currentUser=user;
+  document.getElementById('userName').textContent=user.nome;
+  document.getElementById('userRole').textContent=user.role||user.ruolo;
+  if(user.ruolo==='admin')document.getElementById('adminBtn').style.display='';
+})();
+
+async function doLogout(){
+  await fetch('/api/auth/logout',{method:'POST',headers:authH()});
+  sessionStorage.clear();window.location.href='/login';
+}
+
+// ── TABS ──────────────────────────────────────────────────
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view'+(v==='questionnaire'?'Q':'H')).classList.add('active');
+  document.getElementById('tab'+(v==='questionnaire'?'Q':'H')).classList.add('active');
+  if(v==='history')loadHistory();
+}
+
+// ── QUESTIONNAIRE LOGIC ───────────────────────────────────
+document.querySelectorAll('input[type="radio"]').forEach(i=>i.addEventListener('change',renderScore));
+
+function renderScore(){
+  const a=getAnswers();
+  const answered=Object.keys(a).length;
+  const score=Object.values(a).reduce((s,v)=>s+pf(v),0);
+  const taglia=answered>0?getTaglia(score):null;
+
+  document.getElementById('scoreNum').textContent=answered>0?score:'—';
+
+  const badge=document.getElementById('tagBadge');
+  if(taglia){
+    badge.style.display='inline-flex';
+    badge.className='t-badge t-'+taglia.id;
+    badge.innerHTML=taglia.label+' <span class="range">'+taglia.range+'</span>';
+  } else badge.style.display='none';
+
+  const pct=Math.round((answered/11)*100);
+  document.getElementById('progLabel').textContent=answered+' / 11 domande';
+  document.getElementById('progPct').textContent=pct+'%';
+  document.getElementById('progFill').style.width=pct+'%';
+
+  QDEFS.forEach(q=>{
+    const c=document.getElementById('card-'+q);
+    if(c)c.classList.toggle('answered',a[q]!==undefined);
+  });
+
+  // Save button: enable only if all 11 answered
+  document.getElementById('saveBtn').disabled=answered<11;
+
+  // Governance
+  const gl=document.getElementById('govList');
+  if(!taglia||answered<11){
+    const rem=11-answered;
+    gl.innerHTML=answered===0?'<div class="gov-empty">Compila il questionario.</div>':'<div class="gov-empty">Mancano ancora '+rem+' risposta'+(rem>1?'e':'')+'.</div>';
+    return;
+  }
+  const tIdx=ti(taglia.id);
+  const items=[];
+  GOV_ITEMS.forEach(item=>{
+    const fi=ti(item.from);
+    if(item.cond){if(item.cond(a,taglia.id))items.push({...item,conditional:tIdx<fi});}
+    else{if(tIdx>=fi)items.push({...item,conditional:false});}
+  });
+  gl.innerHTML=items.map(it=>`
+    <div class="gov-item${it.conditional?' cond':''}">
+      <div class="dot"></div>
+      <span class="tag-${it.type.toLowerCase()}">${it.type}</span>
+      <span>${it.name}${it.isNew?' <span class="new-tag">NEW</span>':''}</span>
+      ${it.conditional?'<span class="cn">'+it.cn+'</span>':''}
+    </div>`).join('');
+}
+
+async function saveSizing(){
+  const btn=document.getElementById('saveBtn');
+  const msg=document.getElementById('saveMsg');
+  const cliente=document.getElementById('cliente').value.trim();
+  const titolo=document.getElementById('titolo').value.trim();
+  if(!cliente||!titolo){
+    msg.className='save-msg err';msg.textContent='Cliente e titolo sono obbligatori.';
+    setTimeout(()=>msg.textContent='',3000);return;
+  }
+  btn.disabled=true;btn.textContent='Salvataggio…';
+  const a=getAnswers();
+  const body={
+    crm_number:document.getElementById('crmNumber').value.trim()||null,
+    odl:document.getElementById('odl').value.trim()||null,
+    cliente,titolo,answers:a,
+    note:document.getElementById('note').value.trim()||null,
+  };
+  try{
+    const r=await fetch('/api/sizings',{method:'POST',headers:authH(),body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Errore');
+    msg.className='save-msg ok';msg.textContent='✓ Sizing salvato — Taglia '+d.taglia.toUpperCase()+' ('+d.score+' pt)';
+    // reset
+    setTimeout(()=>{
+      document.querySelectorAll('input[type="radio"]').forEach(i=>i.checked=false);
+      ['crmNumber','odl','cliente','titolo','note'].forEach(id=>document.getElementById(id).value='');
+      renderScore();msg.textContent='';btn.textContent='Salva sizing';
+    },2500);
+  }catch(e){
+    msg.className='save-msg err';msg.textContent=e.message;
+    btn.disabled=false;btn.textContent='Salva sizing';
+  }
+}
+
+// ── HISTORY ───────────────────────────────────────────────
+let allSizings=[];
+let tagliaFilter='';
+let selectedId=null;
+
+async function loadHistory(){
+  document.getElementById('historyList').innerHTML='<div class="h-empty">Caricamento…</div>';
+  const r=await fetch('/api/sizings',{headers:authH()});
+  if(!r.ok)return;
+  const {data}=await r.json();
+  allSizings=data;
+  renderList();
+}
+
+function filterHistory(){renderList();}
+
+function setTagliaFilter(el,t){
+  document.querySelectorAll('.h-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  tagliaFilter=t;
+  renderList();
+}
+
+function renderList(){
+  const search=document.getElementById('searchInput').value.toLowerCase();
+  let items=allSizings;
+  if(tagliaFilter)items=items.filter(s=>s.taglia===tagliaFilter);
+  if(search)items=items.filter(s=>
+    (s.cliente||'').toLowerCase().includes(search)||
+    (s.titolo||'').toLowerCase().includes(search)||
+    (s.crm_number||'').toLowerCase().includes(search)||
+    (s.odl||'').toLowerCase().includes(search)
+  );
+  const list=document.getElementById('historyList');
+  if(!items.length){list.innerHTML='<div class="h-empty">Nessun risultato.</div>';return;}
+  list.innerHTML=items.map(s=>`
+    <div class="h-item${s.id===selectedId?' selected':''}" onclick="showDetail(${s.id})">
+      <div class="h-item-top">
+        <span class="h-item-title">${s.titolo}</span>
+        <span class="t-badge t-${s.taglia}" style="font-size:11px;padding:2px 8px;">${s.taglia.toUpperCase()}</span>
+      </div>
+      <div class="h-item-meta">${s.cliente}${s.crm_number?' · '+s.crm_number:''}${s.odl?' · '+s.odl:''}</div>
+      <div class="h-item-sub">${fmtDate(s.created_at)} · ${s.created_by_nome}</div>
+    </div>`).join('');
+}
+
+function fmtDate(iso){
+  if(!iso)return'—';
+  return new Date(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function showDetail(id){
+  selectedId=id;
+  renderList();
+  const s=allSizings.find(x=>x.id===id);
+  if(!s)return;
+  const taglia=TAGLIE.find(t=>t.id===s.taglia)||TAGLIE[0];
+  const tIdx=ti(s.taglia);
+  const a=s.answers||{};
+
+  // governance
+  const items=[];
+  GOV_ITEMS.forEach(item=>{
+    const fi=ti(item.from);
+    if(item.cond){if(item.cond(a,s.taglia))items.push({...item,conditional:tIdx<fi});}
+    else{if(tIdx>=fi)items.push({...item,conditional:false});}
+  });
+
+  const det=document.getElementById('historyDetail');
+  const canDelete=currentUser&&currentUser.ruolo==='admin';
+  det.innerHTML=`
+    <div class="detail-header">
+      <div>
+        <div class="detail-title">${s.titolo}</div>
+        <div class="detail-meta">${s.cliente} · ${fmtDate(s.created_at)} · ${s.created_by_nome}</div>
+        <div class="detail-badges">
+          ${s.crm_number?'<span class="meta-badge">CRM: '+s.crm_number+'</span>':''}
+          ${s.odl?'<span class="meta-badge">ODL: '+s.odl+'</span>':''}
+          <span class="t-badge t-${s.taglia}">${taglia.label} <span class="range">${taglia.range}</span></span>
+          <span class="meta-badge">${s.score} / 24.5 pt</span>
+        </div>
+      </div>
+      ${canDelete?'<button class="del-btn-detail" onclick="deleteSizing('+s.id+')">🗑 Elimina</button>':''}
+    </div>
+    <div class="detail-grid">
+      <div class="detail-box">
+        <h4>Dati progetto</h4>
+        <div class="detail-kv">
+          <div class="kv-row"><span class="kv-k">CRM</span><span class="kv-v">${s.crm_number||'—'}</span></div>
+          <div class="kv-row"><span class="kv-k">ODL</span><span class="kv-v">${s.odl||'—'}</span></div>
+          <div class="kv-row"><span class="kv-k">Cliente</span><span class="kv-v">${s.cliente}</span></div>
+          ${s.note?'<div class="kv-row"><span class="kv-k">Note</span><span class="kv-v" style="font-style:italic;font-size:11px">'+s.note+'</span></div>':''}
+        </div>
+      </div>
+      <div class="detail-box">
+        <h4>Creato da</h4>
+        <div class="detail-kv">
+          <div class="kv-row"><span class="kv-k">PM</span><span class="kv-v">${s.created_by_nome}</span></div>
+          <div class="kv-row"><span class="kv-k">Username</span><span class="kv-v" style="font-family:'DM Mono',monospace;font-size:11px">${s.created_by}</span></div>
+          <div class="kv-row"><span class="kv-k">Data</span><span class="kv-v">${fmtDate(s.created_at)}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-answers">
+      <h4>Risposte al questionario</h4>
+      ${QDEFS.map(q=>{
+        const qd=Q_LABELS[q];
+        const v=a[q];
+        const label=qd.opts[v]||v||'—';
+        return '<div class="ans-row"><span class="ans-q">'+qd.label+'</span><span class="ans-v">'+label+'</span><span class="ans-pts">'+pf(v)+' pt</span></div>';
+      }).join('')}
+    </div>
+    <div class="detail-gov">
+      <h4>Governance attivata (${items.length} elementi)</h4>
+      ${items.map(it=>`
+        <div class="gov-item${it.conditional?' cond':''}">
+          <div class="dot"></div>
+          <span class="tag-${it.type.toLowerCase()}">${it.type}</span>
+          <span>${it.name}${it.isNew?' <span class="new-tag">NEW</span>':''}</span>
+          ${it.conditional?'<span class="cn">'+it.cn+'</span>':''}
+        </div>`).join('')}
+    </div>
+  `;
+}
+
+async function deleteSizing(id){
+  if(!confirm('Eliminare questo sizing?'))return;
+  const r=await fetch('/api/sizings/'+id,{method:'DELETE',headers:authH()});
+  if(r.ok){selectedId=null;document.getElementById('historyDetail').innerHTML='<div class="h-detail-empty">Sizing eliminato.</div>';loadHistory();}
+  else{const d=await r.json();alert(d.detail||'Errore');}
+}
+
+renderScore();
+</script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archiva Project Sizing — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080c14;--surface:#0d1524;--border:rgba(0,200,230,0.12);--cyan:#00c8e8;--text:#e8f0fe;--muted:#4d6480;--success:#2dd4a7;--danger:#ef4444}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding:24px 28px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.header h1{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
+.header h1 span{color:var(--cyan)}
+.header-right{display:flex;gap:10px;align-items:center}
+.back-btn,.logout-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 14px;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;transition:.15s}
+.back-btn:hover{border-color:rgba(0,200,232,.3);color:var(--text)}
+.logout-btn:hover{border-color:rgba(239,68,68,.3);color:#f87171}
+
+.section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px}
+.section-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.add-btn{background:linear-gradient(135deg,#00c8e8,#0088aa);border:none;border-radius:8px;padding:7px 16px;color:#080c14;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:7px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);font-weight:500}
+td{padding:10px 10px;border-bottom:1px solid rgba(0,200,232,0.04)}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.admin{background:rgba(0,200,232,0.12);color:var(--cyan)}
+.badge.user{background:rgba(100,116,139,0.12);color:var(--muted)}
+.action-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:3px 7px;border-radius:5px;transition:.15s}
+.action-btn.edit:hover{background:rgba(0,200,232,0.1);color:var(--cyan)}
+.action-btn.del:hover{background:rgba(239,68,68,0.1);color:var(--danger)}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid rgba(0,200,232,0.18);border-radius:16px;padding:26px;width:100%;max-width:420px;box-shadow:0 16px 64px rgba(0,0,0,0.5)}
+.modal h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.field input,.field select{width:100%;background:#080c14;border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:rgba(0,200,232,.45)}
+.field select option{background:#0d1524}
+.modal-row{display:flex;gap:10px;margin-top:4px}
+.modal-btn{flex:1;padding:11px;border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.modal-btn.cancel{background:rgba(100,116,139,0.12);color:var(--muted);border:1px solid var(--border)}
+.modal-btn.save{background:linear-gradient(135deg,#00c8e8,#0088aa);color:#080c14;font-weight:700}
+.modal-err{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:9px 12px;font-size:12px;color:#f87171;margin-bottom:12px;display:none}
+.modal-err.show{display:block}
+
+/* Change password */
+.pwd-section{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+.pwd-section h4{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+
+/* ── RESPONSIVE ──────────────────────────────── */
+@media(max-width:1200px){
+  .section{padding:18px}
+}
+@media(max-width:900px){
+  body{padding:16px 18px}
+  table{font-size:11px}
+  th,td{padding:6px 8px}
+}
+@media(max-width:640px){
+  body{padding:12px 14px}
+  .header{flex-wrap:wrap;gap:10px}
+  .header-right{flex-wrap:wrap}
+  table{font-size:11px}
+}
+.admin-wrap{max-width:1400px;margin:0 auto}
+</style>
+</head>
+<body>
+
+<div class="admin-wrap">
+<div class="header">
+  <h1>archiva<span>.</span>sizing <span style="font-size:13px;color:var(--muted);font-weight:400">/ Admin</span></h1>
+  <div class="header-right">
+    <button class="back-btn" onclick="window.location.href='/'">← Dashboard</button>
+    <button class="logout-btn" id="logoutBtn">Esci</button>
+  </div>
+</div>
+
+<!-- UTENTI -->
+<div class="section">
+  <div class="section-title">
+    Gestione Utenti
+    <button class="add-btn" onclick="openModal()">+ Nuovo utente</button>
+  </div>
+  <table>
+    <thead><tr><th>Nome</th><th>Username</th><th>Ruolo</th><th>Posizione</th><th></th></tr></thead>
+    <tbody id="usersTbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">Caricamento...</td></tr></tbody>
+  </table>
+</div>
+
+<!-- CAMBIA PASSWORD PERSONALE -->
+<div class="section">
+  <div class="section-title">La mia password</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end">
+    <div class="field" style="margin:0"><label>Password attuale</label><input type="password" id="curPwd" placeholder="••••••"></div>
+    <div class="field" style="margin:0"><label>Nuova password</label><input type="password" id="newPwd" placeholder="••••••"></div>
+    <button onclick="changeMyPwd()" style="background:rgba(0,200,232,0.12);border:1px solid rgba(0,200,232,0.3);border-radius:8px;padding:11px;color:var(--cyan);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer">Aggiorna</button>
+  </div>
+  <div id="pwdMsg" style="margin-top:10px;font-size:12px;display:none"></div>
+</div>
+
+<!-- MODAL UTENTE -->
+<div class="overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="modalTitle">Nuovo utente</h3>
+    <div class="modal-err" id="modalErr"></div>
+    <div class="field"><label>Nome completo *</label><input type="text" id="fNome" placeholder="Mario Rossi"></div>
+    <div class="field"><label>Username *</label><input type="text" id="fUsername" placeholder="mario.rossi"></div>
+    <div class="field"><label>Password *</label><input type="password" id="fPassword" placeholder="min. 6 caratteri"><span style="font-size:11px;color:var(--muted)">Lascia vuoto per non cambiare (solo in modifica)</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label>Ruolo</label>
+        <select id="fRuolo"><option value="user">User</option><option value="admin">Admin</option></select>
+      </div>
+      <div class="field"><label>Posizione</label>
+        <select id="fRole">
+          <option value="Head of Project Delivery">Head of Project Delivery</option>
+          <option value="Service Delivery Manager">Service Delivery Manager</option>
+          <option value="Delivery & Customer Service Director">D&CS Director</option>
+          <option value="Senior Project Manager">Senior Project Manager</option>
+          <option value="Project Manager">Project Manager</option>
+          <option value="Associate Project Manager">Associate Project Manager</option>
+          <option value="Team Leader Service Delivery">Team Leader Service Delivery</option>
+          <option value="Application Consultant">Application Consultant</option>
+          <option value="Operation Delivery Specialist">Operation Delivery Specialist</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <button class="modal-btn cancel" onclick="closeModal()">Annulla</button>
+      <button class="modal-btn save" onclick="saveUser()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN_KEY = "sizing_token";
+const USER_KEY  = "sizing_user";
+function getToken(){ return sessionStorage.getItem(TOKEN_KEY); }
+function authH(){ return {"Content-Type":"application/json","Authorization":"Bearer "+(getToken()||"")}; }
+
+let editingUsername = null;
+
+// ── INIT ──────────────────────────────────────────────────
+(async()=>{
+  const token=getToken();
+  if(!token){window.location.href="/login";return;}
+  const r=await fetch("/api/auth/me",{headers:{"Authorization":"Bearer "+token}});
+  if(!r.ok){sessionStorage.clear();window.location.href="/login";return;}
+  const {user}=await r.json();
+  if(user.ruolo!=="admin"){window.location.href="/";return;}
+  loadUsers();
+})();
+
+document.getElementById("logoutBtn").addEventListener("click",async()=>{
+  await fetch("/api/auth/logout",{method:"POST",headers:authH()});
+  sessionStorage.clear(); window.location.href="/login";
+});
+
+// ── LOAD USERS ────────────────────────────────────────────
+async function loadUsers(){
+  const r=await fetch("/api/admin/users",{headers:authH()});
+  if(!r.ok)return;
+  const {data}=await r.json();
+  const tbody=document.getElementById("usersTbody");
+  if(!data.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">Nessun utente</td></tr>';return;}
+  tbody.innerHTML=data.map(u=>`
+    <tr>
+      <td style="font-weight:500">${u.nome}</td>
+      <td style="color:var(--muted);font-size:12px">${u.username}</td>
+      <td><span class="badge ${u.ruolo}">${u.ruolo}</span></td>
+      <td style="color:var(--muted);font-size:12px">${u.role||'—'}</td>
+      <td style="text-align:right">
+        <button class="action-btn edit" onclick="openModal('${u.username}','${u.nome}','${u.ruolo}','${u.role||''}')">✏️</button>
+        <button class="action-btn del" onclick="deleteUser('${u.username}','${u.nome}')">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ── MODAL ─────────────────────────────────────────────────
+function openModal(username,nome,ruolo,role){
+  editingUsername=username||null;
+  document.getElementById("modalTitle").textContent=username?"Modifica utente":"Nuovo utente";
+  document.getElementById("fNome").value=nome||"";
+  document.getElementById("fUsername").value=username||"";
+  document.getElementById("fUsername").disabled=!!username;
+  document.getElementById("fPassword").value="";
+  document.getElementById("fRuolo").value=ruolo||"user";
+  document.getElementById("fRole").value=role||"Project Manager";
+  document.getElementById("modalErr").classList.remove("show");
+  document.getElementById("modalOverlay").classList.add("open");
+}
+function closeModal(){document.getElementById("modalOverlay").classList.remove("open");}
+function closeModalOutside(e){if(e.target===document.getElementById("modalOverlay"))closeModal();}
+
+async function saveUser(){
+  const err=document.getElementById("modalErr");
+  err.classList.remove("show");
+  const nome=document.getElementById("fNome").value.trim();
+  const username=document.getElementById("fUsername").value.trim().toLowerCase();
+  const password=document.getElementById("fPassword").value;
+  const ruolo=document.getElementById("fRuolo").value;
+  const role=document.getElementById("fRole").value;
+  if(!nome){err.textContent="Il nome è obbligatorio";err.classList.add("show");return;}
+  if(!editingUsername&&!username){err.textContent="Lo username è obbligatorio";err.classList.add("show");return;}
+  if(!editingUsername&&!password){err.textContent="La password è obbligatoria per i nuovi utenti";err.classList.add("show");return;}
+  const body={nome,ruolo,role};
+  if(password)body.password=password;
+  if(!editingUsername)body.username=username;
+  const url=editingUsername?`/api/admin/users/${editingUsername}`:"/api/admin/users";
+  const method=editingUsername?"PUT":"POST";
+  const r=await fetch(url,{method,headers:authH(),body:JSON.stringify(body)});
+  const data=await r.json();
+  if(!r.ok){err.textContent=data.detail||"Errore";err.classList.add("show");return;}
+  closeModal(); loadUsers();
+}
+
+async function deleteUser(username,nome){
+  if(!confirm(`Eliminare l'utente ${nome}?`))return;
+  const r=await fetch(`/api/admin/users/${username}`,{method:"DELETE",headers:authH()});
+  if(r.ok)loadUsers();
+  else{const d=await r.json();alert(d.detail||"Errore eliminazione");}
+}
+
+// ── CHANGE MY PASSWORD ────────────────────────────────────
+async function changeMyPwd(){
+  const msg=document.getElementById("pwdMsg");
+  const cur=document.getElementById("curPwd").value;
+  const nw=document.getElementById("newPwd").value;
+  if(!cur||!nw){msg.style.color="#f87171";msg.textContent="Compila entrambi i campi";msg.style.display="block";return;}
+  const r=await fetch("/api/auth/change-password",{method:"POST",headers:authH(),body:JSON.stringify({currentPassword:cur,newPassword:nw})});
+  const d=await r.json();
+  if(r.ok){msg.style.color="#2dd4a7";msg.textContent="Password aggiornata ✓";}
+  else{msg.style.color="#f87171";msg.textContent=d.detail||"Errore";}
+  msg.style.display="block";
+  setTimeout(()=>msg.style.display="none",3000);
+}
+</script>
+
+<!-- SEZIONE DATI CARICATI -->
+<div class="section">
+  <div class="section-title">
+    Dati Caricati
+    <div style="display:flex;gap:8px">
+      <button onclick="loadDataSummary()" style="background:rgba(0,200,232,0.1);border:1px solid rgba(0,200,232,0.25);border-radius:8px;padding:6px 14px;color:var(--cyan);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">↻ Aggiorna</button>
+    </div>
+  </div>
+
+  <!-- RICAVI -->
+  <div style="margin-bottom:22px">
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">📊 Ricavi</div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="ricaviDataTbl">
+        <thead><tr><th>Anno</th><th>Mese</th><th>Target</th><th>Consuntivo</th><th>Aggiornato da</th><th>Data</th><th></th></tr></thead>
+        <tbody id="ricaviDataBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Caricamento...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TIME TRACKING -->
+  <div>
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">⏱ Time Tracking</div>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="ttDataTbl">
+        <thead><tr><th>Anno</th><th>Mese</th><th>Team</th><th>Tot. Giorni</th><th>N° Attività</th><th>Aggiornato da</th><th>Data</th><th></th></tr></thead>
+        <tbody id="ttDataBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Caricamento...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:7px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);font-weight:500}
+.tbl td{padding:9px 10px;border-bottom:1px solid rgba(0,200,232,0.04)}
+.tbl tr:last-child td{border-bottom:none}
+.del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 5px;border-radius:4px}
+.del-btn:hover{color:#f87171;background:rgba(239,68,68,0.08)}
+
+/* ── RESPONSIVE ──────────────────────────────── */
+@media(max-width:1200px){
+  .section{padding:18px}
+}
+@media(max-width:900px){
+  body{padding:16px 18px}
+  table{font-size:11px}
+  th,td{padding:6px 8px}
+}
+@media(max-width:640px){
+  body{padding:12px 14px}
+  .header{flex-wrap:wrap;gap:10px}
+  .header-right{flex-wrap:wrap}
+  table{font-size:11px}
+}
+.admin-wrap{max-width:1400px;margin:0 auto}
+</style>
+
+<script>
+// ── DATA SUMMARY ──────────────────────────────────────────────────────────────
+const MESI_NOMI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+async function loadDataSummary() {
+  const [ricavi, tt] = await Promise.all([
+    fetch('/api/ricavi/admin/summary', {headers:authH()}).then(r=>r.ok?r.json():[]),
+    fetch('/api/timetracking/admin/summary', {headers:authH()}).then(r=>r.ok?r.json():[]),
+  ]);
+  renderRicaviData(ricavi);
+  renderTTData(tt);
+}
+
+function itN(n) {
+  if(n==null) return '—';
+  return '€ ' + Math.round(n).toLocaleString('it-IT');
+}
+
+function fmtDate(iso) {
+  if(!iso) return '—';
+  return new Date(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function renderRicaviData(rows) {
+  const tbody = document.getElementById('ricaviDataBody');
+  const withData = rows.filter(r => r.consuntivo != null);
+  if(!withData.length) {
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Nessun consuntivo caricato</td></tr>';
+    return;
+  }
+  tbody.innerHTML = withData.map(r => `
+    <tr>
+      <td>${r.anno}</td>
+      <td>${MESI_NOMI[r.mese-1]}</td>
+      <td style="color:var(--muted)">€ ${Math.round(r.target||0).toLocaleString('it-IT')}</td>
+      <td style="color:var(--cyan);font-weight:600">${itN(r.consuntivo)}</td>
+      <td style="color:var(--muted);font-size:11px">${r.updated_by||'—'}</td>
+      <td style="color:var(--muted);font-size:11px">${fmtDate(r.updated_at)}</td>
+      <td><button class="del-btn" title="Azzera consuntivo" onclick="deleteRicavi(${r.anno},${r.mese},'${MESI_NOMI[r.mese-1]}')">🗑</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderTTData(rows) {
+  const tbody = document.getElementById('ttDataBody');
+  if(!rows.length) {
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Nessun dato Time Tracking caricato</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.anno}</td>
+      <td>${r.mese_nome}</td>
+      <td>${r.team}</td>
+      <td style="color:var(--cyan);font-weight:600">${r.tot_giorni}gg</td>
+      <td style="color:var(--muted)">${r.n_attivita} attività</td>
+      <td style="color:var(--muted);font-size:11px">${r.updated_by||'—'}</td>
+      <td style="color:var(--muted);font-size:11px">${fmtDate(r.updated_at)}</td>
+      <td><button class="del-btn" title="Elimina dati periodo" onclick="deleteTT(${r.anno},${r.mese},'${r.team}','${r.mese_nome}')">🗑</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deleteRicavi(anno, mese, nomeMese) {
+  if(!confirm(`Azzerare il consuntivo di ${nomeMese} ${anno}?`)) return;
+  const r = await fetch(`/api/ricavi/${anno}/${mese}`, {method:'DELETE', headers:authH()});
+  if(r.ok) loadDataSummary();
+  else { const d=await r.json(); alert(d.detail||'Errore'); }
+}
+
+async function deleteTT(anno, mese, team, nomeMese) {
+  if(!confirm(`Eliminare i dati TT di ${nomeMese} ${anno} per ${team}?`)) return;
+  const teamEnc = encodeURIComponent(team);
+  const r = await fetch(`/api/timetracking/${anno}/${mese}/${teamEnc}`, {method:'DELETE', headers:authH()});
+  if(r.ok) loadDataSummary();
+  else { const d=await r.json(); alert(d.detail||'Errore'); }
+}
+
+// Carica al mount
+document.addEventListener('DOMContentLoaded', () => {
+  // viene chiamato dopo l'init auth
+});
+
+// Eseguiamo dopo che l'init ha verificato l'auth
+const _origLoadUsers = typeof loadUsers !== 'undefined' ? loadUsers : null;
+setTimeout(loadDataSummary, 500);
+</script>
+</div><!-- /admin-wrap -->
+</body>
+</html>
