@@ -538,7 +538,7 @@ async function saveSizing(){
     const r=await fetch('/api/sizings',{method:'POST',headers:authH(),body:JSON.stringify(body)});
     const d=await r.json();
     if(!r.ok)throw new Error(d.detail||'Errore');
-    msg.className='save-msg ok';msg.textContent='✓ Sizing salvato — Taglia '+d.taglia.toUpperCase()+' ('+d.score+' pt)';
+    msg.className='save-msg ok';msg.textContent='✓ Sizing salvato ('+d.taglia.toUpperCase()+', '+d.score+' pt) — Vai in Storico per esportare il Word';
     // reset
     setTimeout(()=>{
       document.querySelectorAll('input[type="radio"]').forEach(i=>i.checked=false);
@@ -693,7 +693,7 @@ async function exportDocx(id){
     a.download=match?match[1]:'Allegato_Documenti.docx';
     a.href=url;a.click();
     URL.revokeObjectURL(url);
-  }catch(e){alert('Errore durante l'export: '+e.message);}
+  }catch(e){alert('Errore durante l\'export: '+e.message);}
   finally{if(btn){btn.disabled=false;btn.textContent='⬇ Esporta Word';}}
 }
 
