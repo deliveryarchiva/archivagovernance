@@ -287,13 +287,6 @@ def generate_sizing_docx(sizing_data: dict) -> bytes:
     for _ in range(6):
         _add_para(doc, "", size=11, space_before=0, space_after=0)
 
-    # Logo / brand
-    p = _add_para(doc, "ARCHIVA GROUP", bold=True, size=13, color=BLUE_ACCENT,
-                  align=WD_ALIGN_PARAGRAPH.CENTER, space_before=0, space_after=4)
-
-    _add_para(doc, "Delivery & Customer Service", size=10, color=GRAY_TEXT,
-              align=WD_ALIGN_PARAGRAPH.CENTER, space_before=0, space_after=40)
-
     # Linea separatrice
     p_line = doc.add_paragraph()
     p_line.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -330,11 +323,6 @@ def generate_sizing_docx(sizing_data: dict) -> bytes:
               color=GRAY_TEXT, align=WD_ALIGN_PARAGRAPH.CENTER,
               space_before=0, space_after=48)
 
-    # Taglia badge (testuale)
-    _add_para(doc, f"Taglia {t_info['label']}  ·  {t_info['range']}  ·  {score} / 24.5 pt",
-              bold=False, size=11, color=GRAY_TEXT,
-              align=WD_ALIGN_PARAGRAPH.CENTER, space_before=0, space_after=8)
-
     # Footer copertina
     _add_para(doc, f"Data: {data_str}  ·  PM: {pm_nome}",
               size=10, color=GRAY_TEXT,
@@ -356,8 +344,6 @@ def generate_sizing_docx(sizing_data: dict) -> bytes:
         ("Titolo progetto",  titolo),
         ("N° CRM",           crm),
         ("ODL",              odl),
-        ("Taglia",           f"{t_info['label']}  ({t_info['range']})"),
-        ("Punteggio sizing", f"{score} / 24.5 pt"),
         ("Project Manager",  pm_nome),
         ("Data sizing",      data_str),
     ]

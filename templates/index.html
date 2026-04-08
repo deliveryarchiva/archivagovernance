@@ -110,6 +110,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .save-msg{font-size:12px;text-align:center;margin-top:8px;min-height:16px;}
 .save-msg.ok{color:var(--success);}
 .save-msg.err{color:var(--danger);}
+.download-btn{width:100%;margin-top:8px;padding:10px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;color:#166534;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:none;}
+.download-btn.visible{display:block;}
+.download-btn:hover{background:#dcfce7;border-color:#86efac;}
+.download-btn:disabled{opacity:.5;cursor:not-allowed;}
 
 /* ── HISTORY ── */
 .h-layout{flex:1;display:flex;overflow:hidden;}
@@ -338,6 +342,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="save-section">
           <button class="save-btn" id="saveBtn" onclick="saveSizing()" disabled>Salva sizing</button>
           <div class="save-msg" id="saveMsg"></div>
+          <button class="download-btn" id="downloadBtn" onclick="downloadLastSizing()">⬇ Scarica Allegato Word</button>
         </div>
       </div>
     </div>
@@ -517,6 +522,27 @@ function renderScore(){
     </div>`).join('');
 }
 
+let lastSavedId = null;
+
+async function downloadLastSizing(){
+  if(!lastSavedId)return;
+  const dlBtn=document.getElementById('downloadBtn');
+  dlBtn.disabled=true;dlBtn.textContent='Generazione...';
+  try{
+    const r=await fetch('/api/sizings/'+lastSavedId+'/export',{headers:{'Authorization':'Bearer '+(getToken()||'')}});
+    if(!r.ok)throw new Error('Errore export');
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const cd=r.headers.get('content-disposition')||'';
+    const match=cd.match(/filename="([^"]+)"/);
+    a.download=match?match[1]:'Allegato_Documenti.docx';
+    a.href=url;a.click();
+    URL.revokeObjectURL(url);
+  }catch(e){alert('Errore: '+e.message);}
+  finally{dlBtn.disabled=false;dlBtn.textContent='⬇ Scarica Allegato Word';}
+}
+
 async function saveSizing(){
   const btn=document.getElementById('saveBtn');
   const msg=document.getElementById('saveMsg');
@@ -538,12 +564,15 @@ async function saveSizing(){
     const r=await fetch('/api/sizings',{method:'POST',headers:authH(),body:JSON.stringify(body)});
     const d=await r.json();
     if(!r.ok)throw new Error(d.detail||'Errore');
-    msg.className='save-msg ok';msg.textContent='✓ Sizing salvato ('+d.taglia.toUpperCase()+', '+d.score+' pt) — Vai in Storico per esportare il Word';
+    msg.className='save-msg ok';msg.textContent='✓ Sizing salvato — Taglia '+d.taglia.toUpperCase()+' ('+d.score+' pt)';
+    lastSavedId=d.id;
+    const dlBtn=document.getElementById('downloadBtn');
+    dlBtn.classList.add('visible');
     // reset
     setTimeout(()=>{
       document.querySelectorAll('input[type="radio"]').forEach(i=>i.checked=false);
       ['crmNumber','odl','cliente','titolo','note'].forEach(id=>document.getElementById(id).value='');
-      renderScore();msg.textContent='';btn.textContent='Salva sizing';
+      lastSavedId=null;document.getElementById('downloadBtn').classList.remove('visible');renderScore();msg.textContent='';btn.textContent='Salva sizing';
     },2500);
   }catch(e){
     msg.className='save-msg err';msg.textContent=e.message;
