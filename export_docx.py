@@ -121,13 +121,21 @@ GOVERNANCE_ITEMS = [
 ]
 
 
-def get_active_items(answers: dict, taglia: str):
+def get_active_items(answers: dict, taglia: str, gov_map: dict = None):
     """Restituisce la lista degli elementi di governance attivi per la taglia e le risposte date."""
     active = []
     ti = _ti(taglia)
     for item in GOVERNANCE_ITEMS:
         name, tipo, fase, from_t, freq, desc, cond = item
         fi = _ti(from_t)
+        # Override with DB values if available
+        if gov_map:
+            for db_item in gov_map.values():
+                if db_item.get("name") == name or db_item.get("name", "").lower() == name.lower():
+                    name     = db_item.get("name", name)
+                    freq     = db_item.get("frequenza", freq)
+                    desc     = db_item.get("descrizione", desc)
+                    break
         if cond is not None:
             if cond(answers, taglia):
                 conditional = ti < fi
@@ -238,7 +246,7 @@ def _set_col_width(table, col_idx, width_cm):
 
 # ── Main generator ─────────────────────────────────────────────────────────────
 
-def generate_sizing_docx(sizing_data: dict) -> bytes:
+def generate_sizing_docx(sizing_data: dict, gov_map: dict = None) -> bytes:
     """
     sizing_data keys: id, crm_number, odl, cliente, titolo, answers,
                       score, taglia, note, created_at, created_by, created_by_nome
@@ -261,7 +269,7 @@ def generate_sizing_docx(sizing_data: dict) -> bytes:
     except Exception:
         data_str = datetime.now().strftime("%d/%m/%Y")
 
-    active_items = get_active_items(answers, taglia)
+    active_items = get_active_items(answers, taglia, gov_map)
 
     doc = Document()
 
