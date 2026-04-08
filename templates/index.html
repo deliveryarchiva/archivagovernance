@@ -205,6 +205,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .diz-save-msg.err{color:var(--danger);}
 .diz-char-count{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:right;}
 .admin-only-hint{font-size:11px;color:var(--muted);font-style:italic;padding:8px 0;}
+
+/* ── OVERLAY & MODAL (dizionario) ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(3px);}
+.overlay.open{display:flex;}
+.modal-btn{flex:1;padding:11px;border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;}
+.modal-btn.cancel{background:#f9fafb;color:var(--muted);border:1px solid var(--border);}
+.modal-btn.cancel:hover{background:#f3f4f6;}
+.modal-btn.save{background:var(--accent);color:#fff;font-weight:700;}
+.modal-btn.save:hover{background:#1558d4;}
 </style>
 </head>
 <body>
@@ -226,7 +235,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="tabs">
   <div class="tab active" id="tabQ" onclick="showView('questionnaire')">➕ Nuovo sizing</div>
   <div class="tab" id="tabH" onclick="showView('history')">📋 Storico</div>
-  <div class="tab" id="tabD" onclick="showView('dizionario')" id="tabD">📖 Dizionario</div>
+  <div class="tab" id="tabD" onclick="showView('dizionario')">📖 Dizionario</div>
 </div>
 
 <!-- MAIN -->
@@ -870,13 +879,8 @@ function renderDizList(){
     i.fase.toLowerCase().includes(search)
   );
 
-  // Group by fase
   const byFase={};
-  items.forEach(i=>{
-    const f=i.fase;
-    if(!byFase[f])byFase[f]=[];
-    byFase[f].push(i);
-  });
+  items.forEach(i=>{if(!byFase[i.fase])byFase[i.fase]=[];byFase[i.fase].push(i);});
 
   const faseOrder=['Avvio','Avvio / Pianificazione','Pianificazione','Esecuzione',
                    'Fine di ogni fase','Esecuzione → Chiusura','Pre go-live',
@@ -885,27 +889,71 @@ function renderDizList(){
 
   const isAdmin=currentUser&&currentUser.ruolo==='admin';
   const list=document.getElementById('dizList');
-  if(!items.length){list.innerHTML='<div class="h-empty">Nessun risultato.</div>';return;}
+  list.innerHTML='';
 
-  list.innerHTML=sortedFasi.map(fase=>`
-    <div class="diz-phase-label">${fase}</div>
-    ${byFase[fase].map(item=>`
-      <div class="diz-item" id="diz-${item.key}">
-        <div class="diz-item-left">
-          <div class="diz-item-name">
-            ${item.name}
-            <span class="tag-${item.tipo.toLowerCase()}">${item.tipo}</span>
-            <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);font-weight:400">da taglia ${item.from_taglia.toUpperCase()}</span>
-          </div>
-          <div class="diz-item-meta">
-            <span>⏱ ${item.frequenza}</span>
-          </div>
-          <div class="diz-item-desc${item.descrizione?'':' muted'}">${item.descrizione||'Nessuna descrizione'}</div>
-          ${item.updated_by?'<div class="diz-updated">Modificato da '+item.updated_by+(item.updated_at?' · '+new Date(item.updated_at).toLocaleDateString("it-IT"):'')+'</div>':''}
-        </div>
-        ${isAdmin?'<button class="diz-edit-btn" onclick="openDizModal(''+item.key+'')">✏ Modifica</button>':''}
-      </div>`).join('')}
-  `).join('');
+  if(!items.length){
+    list.innerHTML='<div class="h-empty">Nessun risultato.</div>';
+    return;
+  }
+
+  sortedFasi.forEach(fase=>{
+    const lbl=document.createElement('div');
+    lbl.className='diz-phase-label';
+    lbl.textContent=fase;
+    list.appendChild(lbl);
+
+    byFase[fase].forEach(item=>{
+      const card=document.createElement('div');
+      card.className='diz-item';
+      card.id='diz-'+item.key;
+
+      const left=document.createElement('div');
+      left.className='diz-item-left';
+
+      const nameRow=document.createElement('div');
+      nameRow.className='diz-item-name';
+      nameRow.appendChild(document.createTextNode(item.name+' '));
+      const tipoBadge=document.createElement('span');
+      tipoBadge.className='tag-'+item.tipo.toLowerCase();
+      tipoBadge.textContent=item.tipo;
+      nameRow.appendChild(tipoBadge);
+      const tagliaMeta=document.createElement('span');
+      tagliaMeta.style.cssText='font-family:"DM Mono",monospace;font-size:9px;color:var(--muted);font-weight:400';
+      tagliaMeta.textContent=' da taglia '+item.from_taglia.toUpperCase();
+      nameRow.appendChild(tagliaMeta);
+      left.appendChild(nameRow);
+
+      const metaRow=document.createElement('div');
+      metaRow.className='diz-item-meta';
+      metaRow.innerHTML='<span>&#9201; '+item.frequenza+'</span>';
+      left.appendChild(metaRow);
+
+      const desc=document.createElement('div');
+      desc.className='diz-item-desc'+(item.descrizione?'':' muted');
+      desc.textContent=item.descrizione||'Nessuna descrizione';
+      left.appendChild(desc);
+
+      if(item.updated_by){
+        const upd=document.createElement('div');
+        upd.className='diz-updated';
+        upd.textContent='Modificato da '+item.updated_by+(item.updated_at?' · '+new Date(item.updated_at).toLocaleDateString('it-IT'):'');
+        left.appendChild(upd);
+      }
+
+      card.appendChild(left);
+
+      if(isAdmin){
+        const btn=document.createElement('button');
+        btn.className='diz-edit-btn';
+        btn.textContent='✏ Modifica';
+        btn.addEventListener('click',function(){openDizModal(item.key);});
+        card.appendChild(btn);
+      }
+
+      list.appendChild(card);
+    });
+  });
+
   if(!isAdmin){
     const hint=document.createElement('p');
     hint.className='admin-only-hint';
