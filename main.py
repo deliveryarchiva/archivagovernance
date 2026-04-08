@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, Depends, Request, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
 
@@ -13,6 +13,7 @@ from auth import (
     create_session, get_session, delete_session,
     seed_users, get_current_user, require_admin,
 )
+from export_docx import generate_sizing_docx
 
 app = FastAPI(title="Archiva Project Sizing", docs_url=None, redoc_url=None)
 
@@ -266,3 +267,27 @@ def _serialize(s: ProjectSizing) -> dict:
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ── EXPORT DOCX ───────────────────────────────────────────────────────────────
+
+@app.get("/api/sizings/{sizing_id}/export")
+def export_sizing_docx(sizing_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    s = db.query(ProjectSizing).filter(ProjectSizing.id == sizing_id).first()
+    if not s:
+        raise HTTPException(404, "Sizing non trovato")
+
+    data = _serialize(s)
+    docx_bytes = generate_sizing_docx(data)
+
+    # Filename sicuro
+    safe_odl    = (s.odl or "NODL").replace("/", "-").replace(" ", "_")
+    safe_client = "".join(c for c in (s.cliente or "cliente") if c.isalnum() or c in (" ", "-", "_"))
+    safe_client = safe_client.strip().replace(" ", "_")[:30]
+    filename    = f"Allegato_Documenti_{safe_odl}_{safe_client}.docx"
+
+    return Response(
+        content=docx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

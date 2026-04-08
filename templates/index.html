@@ -140,6 +140,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .meta-badge{font-family:'DM Mono',monospace;font-size:11px;padding:3px 9px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--muted);}
 .del-btn-detail{background:none;border:1px solid #fecaca;border-radius:8px;padding:7px 14px;color:var(--danger);font-family:inherit;font-size:12px;cursor:pointer;transition:.15s;flex-shrink:0;}
 .del-btn-detail:hover{background:#fff1f2;}
+.export-btn{background:var(--accent);border:none;border-radius:8px;padding:7px 14px;color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.export-btn:hover{background:#1558d4;}
+.export-btn:disabled{opacity:.5;cursor:not-allowed;}
+.action-row{display:flex;gap:8px;align-items:center;}
 
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
 .detail-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
@@ -629,7 +633,10 @@ function showDetail(id){
           <span class="meta-badge">${s.score} / 24.5 pt</span>
         </div>
       </div>
-      ${canDelete?'<button class="del-btn-detail" onclick="deleteSizing('+s.id+')">🗑 Elimina</button>':''}
+      <div class="action-row">
+        <button class="export-btn" onclick="exportDocx(${s.id})" id="exportBtn-${s.id}" title="Esporta Word">⬇ Esporta Word</button>
+        ${canDelete?'<button class="del-btn-detail" onclick="deleteSizing('+s.id+')">🗑 Elimina</button>':''}
+      </div>
     </div>
     <div class="detail-grid">
       <div class="detail-box">
@@ -670,6 +677,24 @@ function showDetail(id){
         </div>`).join('')}
     </div>
   `;
+}
+
+async function exportDocx(id){
+  const btn=document.getElementById('exportBtn-'+id);
+  if(btn){btn.disabled=true;btn.textContent='Generazione...';}
+  try{
+    const r=await fetch('/api/sizings/'+id+'/export',{headers:{'Authorization':'Bearer '+(getToken()||'')}});
+    if(!r.ok)throw new Error('Errore export');
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const cd=r.headers.get('content-disposition')||'';
+    const match=cd.match(/filename="([^"]+)"/);
+    a.download=match?match[1]:'Allegato_Documenti.docx';
+    a.href=url;a.click();
+    URL.revokeObjectURL(url);
+  }catch(e){alert('Errore durante l'export: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='⬇ Esporta Word';}}
 }
 
 async function deleteSizing(id){
